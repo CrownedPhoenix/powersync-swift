@@ -7,10 +7,11 @@ let packageName = "PowerSync"
 
 // Set this to the absolute path of your Kotlin SDK checkout if you want to use a local Kotlin
 // build. Also see docs/LocalBuild.md for details
-// let localKotlinSdkOverride: String? = "/Users/jaironterrero/repos/0/powersync-kotlin/internal/"
+// let localKotlinSdkOverride: String? = "/Users/jaironterrero/repos/0/powersync-kotlin"
 let localKotlinSdkOverride: String? = nil
 // Set this to the absolute path of your powersync-sqlite-core checkout if you want to use a
 // local build of the core extension.
+// let localCoreExtension: String? = "/Users/jaironterrero/repos/0/powersync-sqlite-core"
 let localCoreExtension: String? = nil
 
 // Currently encryption is required for GRDB integration

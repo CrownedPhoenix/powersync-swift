@@ -101,7 +101,10 @@ func mapParameters(_ parameters: [Any?]?) -> [Any] {
             case .none: NSNull()
             case let item as PowerSyncDataTypeConvertible:
                 item.psDataType?.unwrap() ?? NSNull()
-            default: item
+            case let item as any RawRepresentable:
+                item.rawValue
+            case let .some(item):
+                item
         }
     } ?? []
 }
