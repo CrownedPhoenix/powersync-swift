@@ -28,6 +28,7 @@ actor GRDBConnectionPool: SQLiteConnectionPoolProtocol {
             tempContinuation = continuation
             pool.add(
                 transactionObserver: PowerSyncTransactionObserver { updates in
+                    // print("===> UPDATES: \(updates)")
                     // push the update
                     continuation.yield(updates)
                 },

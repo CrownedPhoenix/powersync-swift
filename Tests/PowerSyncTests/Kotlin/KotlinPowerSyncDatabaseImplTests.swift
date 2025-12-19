@@ -647,7 +647,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
 }
 
 
-extension UUID: @retroactive PowerSyncDataTypeConvertible {
+extension UUID: PowerSyncDataTypeConvertible {
     public var psDataType: PowerSyncDataType? {
         .string(uuidString)
     }

@@ -31,6 +31,7 @@ final class PowerSyncTransactionObserver: TransactionObserver {
     /// fire this after the commit has been executed
     func databaseDidCommit(_: GRDB.Database) {
         // Notify about all buffered changes
+        // guard !buffered.isEmpty else { return }
         onChange(buffered)
         buffered.removeAll()
     }
@@ -39,4 +40,8 @@ final class PowerSyncTransactionObserver: TransactionObserver {
         // Discard buffered changes
         buffered.removeAll()
     }
+
+    // deinit {
+    //     print("Observer deinit \(ObjectIdentifier(self))")
+    // }
 }
