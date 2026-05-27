@@ -1,120 +1,82 @@
+import Foundation
+import Logging
 import OSLog
 
-/// A log writer which prints to the standard output
+/// A `LogHandler` that forwards messages to `os.Logger` on Apple platforms with
+/// modern OS availability, and falls back to `print` otherwise.
 ///
-/// This writer uses `os.Logger` on iOS/macOS/tvOS/watchOS 14+ and falls back to `print` for earlier versions.
-public final class PrintLogWriter: LogWriterProtocol {
+/// The handler's `metadata` is rendered as `key=value` pairs appended to the message.
+/// A `tag` key, if present, is rendered as a `[tag]` prefix to match the legacy log
+/// format produced by previous versions of this SDK.
+public struct OSLogHandler: Logging.LogHandler {
+    public var metadata: Logging.Logger.Metadata = [:]
+    public var logLevel: Logging.Logger.Level
     private let subsystem: String
-    private let category: String
-    private let logger: Sendable?
+    private let label: String
+    private let osLogger: Sendable?
 
-    /// Creates a new PrintLogWriter
-    /// - Parameters:
-    ///   - subsystem: The subsystem identifier (typically reverse DNS notation of your app)
-    ///   - category: The category within your subsystem
-    public init(subsystem: String = Bundle.main.bundleIdentifier ?? "com.powersync.logger",
-                category: String = "default")
-    {
+    public init(
+        label: String,
+        subsystem: String = Bundle.main.bundleIdentifier ?? "com.powersync.logger",
+        logLevel: Logging.Logger.Level = .debug
+    ) {
+        self.label = label
         self.subsystem = subsystem
-        self.category = category
+        self.logLevel = logLevel
 
         if #available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *) {
-            logger = Logger(subsystem: subsystem, category: category)
+            osLogger = os.Logger(subsystem: subsystem, category: label)
         } else {
-            logger = nil
+            osLogger = nil
         }
     }
 
-    /// Logs a message with a given severity and optional tag.
-    /// - Parameters:
-    ///   - severity: The severity level of the message.
-    ///   - message: The content of the log message.
-    ///   - tag: An optional tag used to categorize the message. If empty, no brackets are shown.
-    public func log(severity: LogSeverity, message: String, tag: String?) {
-        let tagPrefix = tag.map { !$0.isEmpty ? "[\($0)] " : "" } ?? ""
-        let formattedMessage = "\(tagPrefix)\(message)"
+    public subscript(metadataKey key: String) -> Logging.Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    public func log(event: Logging.LogEvent) {
+        let merged = self.metadata.merging(event.metadata ?? [:]) { _, new in new }
+        let tagPrefix: String
+        var remaining = merged
+        if let tag = remaining.removeValue(forKey: "tag"), case let .string(value) = tag, !value.isEmpty {
+            tagPrefix = "[\(value)] "
+        } else {
+            tagPrefix = ""
+        }
+        let suffix = remaining.isEmpty
+            ? ""
+            : " " + remaining
+                .sorted(by: { $0.key < $1.key })
+                .map { "\($0.key)=\($0.value)" }
+                .joined(separator: " ")
+        let formatted = "\(tagPrefix)\(event.message.description)\(suffix)"
 
         if #available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *) {
-            guard let logger = logger as? Logger else { return }
-
-            switch severity {
-            case .info:
-                logger.info("\(formattedMessage, privacy: .public)")
-            case .error:
-                logger.error("\(formattedMessage, privacy: .public)")
-            case .debug:
-                logger.debug("\(formattedMessage, privacy: .public)")
+            guard let osLogger = osLogger as? os.Logger else { return }
+            switch event.level {
+            case .trace, .debug:
+                osLogger.debug("\(formatted, privacy: .public)")
+            case .info, .notice:
+                osLogger.info("\(formatted, privacy: .public)")
             case .warning:
-                logger.warning("\(formattedMessage, privacy: .public)")
-            case .fault:
-                logger.fault("\(formattedMessage, privacy: .public)")
+                osLogger.warning("\(formatted, privacy: .public)")
+            case .error:
+                osLogger.error("\(formatted, privacy: .public)")
+            case .critical:
+                osLogger.fault("\(formatted, privacy: .public)")
             }
         } else {
-            print("\(severity.stringValue): \(formattedMessage)")
+            print("\(event.level): \(formatted)")
         }
     }
 }
 
-/// A default logger configuration that uses `PrintLogWriter` and filters messages by minimum severity.
-public final class DefaultLogger: LoggerProtocol,
-    // The shared state is guarded by the DispatchQueue
-    @unchecked Sendable
-{
-    private var minSeverity: LogSeverity
-    private var writers: [any LogWriterProtocol]
-    private let queue = DispatchQueue(label: "DefaultLogger.queue")
-
-    /// Initializes the default logger with an optional minimum severity level.
-    ///
-    /// - Parameters
-    ///     - minSeverity: The minimum severity level to log. Defaults to `.debug`.
-    ///     - writers: Optional writers which logs should be written to. Defaults to a `PrintLogWriter`.
-    public init(minSeverity: LogSeverity = .debug, writers: [any LogWriterProtocol]? = nil) {
-        self.writers = writers ?? [PrintLogWriter()]
-        self.minSeverity = minSeverity
-    }
-
-    public func setWriters(_ writers: [any LogWriterProtocol]) {
-        queue.sync {
-            self.writers = writers
-        }
-    }
-
-    public func setMinSeverity(_ severity: LogSeverity) {
-        queue.sync {
-            minSeverity = severity
-        }
-    }
-
-    public func debug(_ message: String, tag: String? = nil) {
-        writeLog(message, severity: LogSeverity.debug, tag: tag)
-    }
-
-    public func error(_ message: String, tag: String? = nil) {
-        writeLog(message, severity: LogSeverity.error, tag: tag)
-    }
-
-    public func info(_ message: String, tag: String? = nil) {
-        writeLog(message, severity: LogSeverity.info, tag: tag)
-    }
-
-    public func warning(_ message: String, tag: String? = nil) {
-        writeLog(message, severity: LogSeverity.warning, tag: tag)
-    }
-
-    public func fault(_ message: String, tag: String? = nil) {
-        writeLog(message, severity: LogSeverity.fault, tag: tag)
-    }
-
-    private func writeLog(_ message: String, severity: LogSeverity, tag: String?) {
-        let currentSeverity = queue.sync { minSeverity }
-
-        if severity.rawValue < currentSeverity.rawValue {
-            return
-        }
-
-        for writer in writers {
-            writer.log(severity: severity, message: message, tag: tag)
-        }
-    }
+/// Creates a `Logger` that uses `OSLogHandler` and is the default logger used when no
+/// custom logger is supplied to PowerSync APIs.
+public func defaultPowerSyncLogger(label: String = "PowerSync") -> Logging.Logger {
+    var logger = Logging.Logger(label: label, factory: { OSLogHandler(label: $0) })
+    logger.logLevel = .debug
+    return logger
 }

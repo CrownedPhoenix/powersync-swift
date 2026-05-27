@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 
 /// Default database filename
 public let DEFAULT_DB_FILENAME = "powersync.db"
@@ -7,13 +8,13 @@ public let DEFAULT_DB_FILENAME = "powersync.db"
 /// - Parameters:
 ///   - schema: The database schema
 ///   - dbFilename: The database filename. Defaults to "powersync.db"
-///   - logger: Optional logging interface
+///   - logger: Optional logger. Defaults to a logger backed by `os.Logger`.
 ///   - initialStatements: An optional list of statements to run as the database is opened.
 /// - Returns: A configured PowerSyncDatabase instance
 public func PowerSyncDatabase(
     schema: Schema,
     dbFilename: String = DEFAULT_DB_FILENAME,
-    logger: (any LoggerProtocol) = DefaultLogger(),
+    logger: Logger = defaultPowerSyncLogger(),
     initialStatements: [String] = []
 ) -> PowerSyncDatabaseProtocol {
     let (location, group) = if dbFilename == ":memory:" {
@@ -44,7 +45,7 @@ public func PowerSyncDatabase(
 ///   - identifier: A unique identifier for this database instance. This is
 ///     typically used to isolate multiple database
 ///     instances in the same process.
-///   - logger: Optional logging implementation. Defaults to `DefaultLogger()`.
+///   - logger: Optional logger. Defaults to a logger backed by `os.Logger`.
 ///
 /// - Returns: A `PowerSyncDatabaseProtocol` that wraps the opened database and
 ///   exposes PowerSync functionality backed by the provided connection pool.
@@ -52,7 +53,7 @@ public func OpenedPowerSyncDatabase(
     schema: Schema,
     pool: any SQLiteConnectionPoolProtocol,
     identifier: String,
-    logger: (any LoggerProtocol) = DefaultLogger()
+    logger: Logger = defaultPowerSyncLogger()
 ) -> PowerSyncDatabaseProtocol {
     return PowerSyncDatabaseImpl(
         identifier: identifier,

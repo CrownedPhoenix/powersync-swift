@@ -1,4 +1,5 @@
 @testable import GRDB
+import Logging
 @testable import PowerSync
 @testable import PowerSyncGRDB
 
@@ -44,7 +45,7 @@ final class GRDBTests: XCTestCase {
     private var database: PowerSyncDatabaseProtocol!
     private var schema: Schema!
     private var pool: DatabasePool!
-    private var logs: TestLogWriterAdapter!
+    private var logs: CapturingLogHandler!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -84,8 +85,10 @@ final class GRDBTests: XCTestCase {
             configuration: config
         )
 
-        logs = TestLogWriterAdapter()
-        let logger = DefaultLogger(minSeverity: LogSeverity.debug, writers: [logs])
+        logs = CapturingLogHandler(level: .debug)
+        let capturedHandler = logs!
+        var logger = Logger(label: "PowerSyncGRDBTests", factory: { _ in capturedHandler })
+        logger.logLevel = .debug
         database = openPowerSyncWithGRDB(
             pool: pool,
             schema: schema,
@@ -454,23 +457,40 @@ final class GRDBTests: XCTestCase {
     }
 }
 
-final class TestLogWriterAdapter: LogWriterProtocol,
-    // The shared state is guarded by the DispatchQueue
-    @unchecked Sendable
-{
-    private let queue = DispatchQueue(label: "TestLogWriterAdapter")
+final class CapturingLogHandler: LogHandler, @unchecked Sendable {
+    private let queue = DispatchQueue(label: "CapturingLogHandler")
+    private var logs: [String] = []
+    private var levelValue: Logger.Level
+    var metadata: Logger.Metadata = [:]
 
-    private var logs = [String]()
+    init(level: Logger.Level = .debug) {
+        levelValue = level
+    }
 
-    func getLogs() -> [String] {
+    var logLevel: Logger.Level {
+        get { queue.sync { levelValue } }
+        set { queue.sync { levelValue = newValue } }
+    }
+
+    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(event: LogEvent) {
+        let merged = self.metadata.merging(event.metadata ?? [:]) { _, new in new }
+        let tag: String
+        if case let .some(.string(value)) = merged["tag"] {
+            tag = value
+        } else {
+            tag = ""
+        }
         queue.sync {
-            logs
+            logs.append("\(event.level): \(event.message) \(tag)")
         }
     }
 
-    func log(severity: LogSeverity, message: String, tag: String?) {
-        queue.sync {
-            logs.append("\(severity): \(message) \(tag != nil ? "\(tag!)" : "")")
-        }
+    func getLogs() -> [String] {
+        queue.sync { logs }
     }
 }

@@ -63,7 +63,8 @@ let package = Package(
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.9.0"),
         .package(url: "https://github.com/powersync-ja/CSQLite.git", exact: "3.51.2"),
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.1.0"),
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.4.0")
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.4.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -75,7 +76,8 @@ let package = Package(
                 .product(name: "CSQLite", package: "CSQLite"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "BasicContainers", package: "swift-collections"),
-                .product(name: "DequeModule", package: "swift-collections")
+                .product(name: "DequeModule", package: "swift-collections"),
+                .product(name: "Logging", package: "swift-log")
             ]
         ),
         .target(
@@ -88,16 +90,24 @@ let package = Package(
             name: "PowerSyncGRDB",
             dependencies: [
                 .target(name: "PowerSync"),
-                .product(name: "GRDB", package: "GRDB.swift")
+                .product(name: "GRDB", package: "GRDB.swift"),
+                .product(name: "Logging", package: "swift-log")
             ]
         ),
         .testTarget(
             name: "PowerSyncTests",
-            dependencies: ["PowerSync"]
+            dependencies: [
+                "PowerSync",
+                .product(name: "Logging", package: "swift-log")
+            ]
         ),
         .testTarget(
             name: "PowerSyncGRDBTests",
-            dependencies: ["PowerSync", "PowerSyncGRDB"]
+            dependencies: [
+                "PowerSync",
+                "PowerSyncGRDB",
+                .product(name: "Logging", package: "swift-log")
+            ]
         )
     ] + conditionalTargets
 )

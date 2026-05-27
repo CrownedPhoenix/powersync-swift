@@ -1,8 +1,9 @@
 import AsyncAlgorithms
 import Foundation
+import Logging
 
 final class PowerSyncDatabaseImpl: PowerSyncDatabaseProtocol {
-    let logger: any LoggerProtocol
+    let logger: Logger
     let group: ActiveDatabaseGroup
     let syncStatus = SwiftSyncStatus()
     private let dbFilename: String?
@@ -15,7 +16,7 @@ final class PowerSyncDatabaseImpl: PowerSyncDatabaseProtocol {
         dbFilename: String? = nil,
         identifier: String,
         activeInstanceStore: DatabaseGroupCollection = .shared,
-        logger: any LoggerProtocol,
+        logger: Logger,
         pool: any SQLiteConnectionPoolProtocol,
         httpClient: HttpClient,
         schema: Schema
@@ -196,7 +197,7 @@ private actor DatabaseInitializationAction {
             let sqliteVersion = try conn.get(sql: "SELECT sqlite_version()", parameters: []) { try $0.getString(index: 0) }
             let powerSyncVersion = try conn.get(sql: "SELECT powersync_rs_version()", parameters: []) { try $0.getString(index: 0) }
 
-            db.logger.debug("Opened connection. SQLite version \(sqliteVersion), PowerSync SQLite core extension \(powerSyncVersion)", tag: "PowerSyncDatabase")
+            db.logger.debug("Opened connection. SQLite version \(sqliteVersion), PowerSync SQLite core extension \(powerSyncVersion)", metadata: ["tag": "PowerSyncDatabase"])
 
             try conn.execute(sql: "SELECT powersync_init()", parameters: [])
             return powerSyncVersion

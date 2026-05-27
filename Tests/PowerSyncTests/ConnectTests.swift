@@ -21,7 +21,7 @@ final class ConnectTests: XCTestCase {
         database = PowerSyncDatabase(
             schema: schema,
             dbFilename: ":memory:",
-            logger: DefaultLogger()
+            logger: defaultPowerSyncLogger()
         )
         try await database.disconnectAndClear()
     }

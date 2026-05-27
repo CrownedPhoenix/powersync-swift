@@ -14,7 +14,7 @@ struct EncryptionTests {
         let database = PowerSyncDatabase(
             schema: Schema(),
             dbFilename: "linkSqlite3Mc",
-            logger: DefaultLogger()
+            logger: defaultPowerSyncLogger()
         )
         
         let cipher = try await database.get("pragma cipher", mapper:  {cursor in
@@ -37,7 +37,7 @@ struct EncryptionTests {
                 ),
             ]),
             dbFilename: "encrypted.db",
-            logger: DefaultLogger(),
+            logger: defaultPowerSyncLogger(),
             initialStatements: [
                 "pragma key = 'foobar'"
             ],
@@ -56,7 +56,7 @@ struct EncryptionTests {
                 ),
             ]),
             dbFilename: "encrypted.db",
-            logger: DefaultLogger(),
+            logger: defaultPowerSyncLogger(),
             initialStatements: [
                 "pragma key = 'wrong password'",
             ],

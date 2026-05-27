@@ -1,4 +1,5 @@
 import GRDB
+import Logging
 import PowerSync
 
 /// Creates a PowerSync database instance that integrates with an existing GRDB database pool.
@@ -44,7 +45,7 @@ public func openPowerSyncWithGRDB(
     pool: DatabasePool,
     schema: Schema,
     identifier: String,
-    logger: (any LoggerProtocol) = DefaultLogger()
+    logger: Logger = defaultPowerSyncLogger()
 ) -> PowerSyncDatabaseProtocol {
     return OpenedPowerSyncDatabase(
         schema: schema,

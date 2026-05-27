@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 
 public protocol AttachmentServiceProtocol: Sendable {
     /// Watches for changes to the attachments table.
@@ -14,7 +15,7 @@ public protocol AttachmentServiceProtocol: Sendable {
 actor AttachmentServiceImpl: AttachmentServiceProtocol {
     private let db: any PowerSyncDatabaseProtocol
     private let tableName: String
-    private let logger: any LoggerProtocol
+    private let logger: Logger
     private let logTag = "AttachmentService"
 
     private let context: AttachmentContext
@@ -23,7 +24,7 @@ actor AttachmentServiceImpl: AttachmentServiceProtocol {
     public init(
         db: PowerSyncDatabaseProtocol,
         tableName: String,
-        logger: any LoggerProtocol,
+        logger: Logger,
         maxArchivedCount: Int64
     ) {
         self.db = db
@@ -38,7 +39,7 @@ actor AttachmentServiceImpl: AttachmentServiceProtocol {
     }
 
     public func watchActiveAttachments() throws -> AsyncThrowingStream<[String], Error> {
-        logger.info("Watching attachments...", tag: logTag)
+        logger.info("Watching attachments...", metadata: ["tag": .string(logTag)])
 
         return try db.watch(
             sql: """

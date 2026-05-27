@@ -1,6 +1,7 @@
 import CSQLite
 import DequeModule
 import Foundation
+import Logging
 
 enum DatabaseLocation {
     case inMemory
@@ -59,11 +60,11 @@ enum DatabaseLocation {
 final class AsyncConnectionPool: SQLiteConnectionPoolProtocol {
     private let location: DatabaseLocation
     private let initialStatements: [String]
-    private let logger: any LoggerProtocol
+    private let logger: Logger
     private let tableUpdatesStream = BroadcastStream<Set<String>>()
     private let opener = PoolOpener()
 
-    init(location: DatabaseLocation, logger: any LoggerProtocol, initialStatements: [String] = []) {
+    init(location: DatabaseLocation, logger: Logger, initialStatements: [String] = []) {
         self.location = location
         self.logger = logger
         self.initialStatements = initialStatements

@@ -1,3 +1,5 @@
+import Logging
+
 /// Level of logs to expose to a `SyncRequestLogger` handler.
 ///
 /// Controls the verbosity of network logging for PowerSync HTTP requests.
@@ -46,38 +48,28 @@ public struct SyncRequestLoggerConfiguration: Sendable {
         logHandler(message)
     }
 
-    /// Creates a new network logger configuration using a `LoggerProtocol` instance.
+    /// Creates a new network logger configuration that forwards messages to a swift-log
+    /// `Logger`.
     ///
-    /// This initializer allows integration with an existing logging framework by adapting
-    /// a `LoggerProtocol` to conform to `SyncRequestLogger`. The specified `logSeverity`
-    /// controls the severity level at which log messages are recorded. An optional `logTag`
-    /// may be used to help categorize logs.
+    /// All messages emitted by this configuration are logged at `level`. If `tag` is
+    /// provided, it is attached as a `tag` metadata entry on every log message, which
+    /// `OSLogHandler` renders as a `[tag]` prefix.
     ///
     /// - Parameters:
     ///   - requestLevel: The `SyncRequestLogLevel` to use for filtering which network events are logged.
-    ///   - logger: An object conforming to `LoggerProtocol` that will receive log messages.
-    ///   - logSeverity: The severity level to use for all log messages (defaults to `.debug`).
-    ///   - logTag: An optional tag to include with each log message, for use by the logging backend.
+    ///   - logger: A `Logger` that will receive log messages.
+    ///   - level: The level to use for all log messages (defaults to `.debug`).
+    ///   - tag: An optional tag attached as `tag` metadata on each log message.
     public init(
         requestLevel: SyncRequestLogLevel,
-        logger: LoggerProtocol,
-        logSeverity: LogSeverity = .debug,
-        logTag: String? = nil
+        logger: Logger,
+        level: Logger.Level = .debug,
+        tag: String? = nil
     ) {
         self.requestLevel = requestLevel
+        let metadata: Logger.Metadata? = tag.map { ["tag": .string($0)] }
         logHandler = { message in
-            switch logSeverity {
-            case .debug:
-                logger.debug(message, tag: logTag)
-            case .info:
-                logger.info(message, tag: logTag)
-            case .warning:
-                logger.warning(message, tag: logTag)
-            case .error:
-                logger.error(message, tag: logTag)
-            case .fault:
-                logger.fault(message, tag: logTag)
-            }
+            logger.log(level: level, "\(message)", metadata: metadata)
         }
     }
 }

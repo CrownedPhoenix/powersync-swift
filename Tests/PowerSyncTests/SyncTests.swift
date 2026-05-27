@@ -1,5 +1,6 @@
 import AsyncAlgorithms
 import Foundation
+import Logging
 @testable import PowerSync
 import Testing
 
@@ -743,12 +744,12 @@ let defaultSchema = Schema(tables: [
     ),
 ])
 
-private func openDatabase(_ client: any HttpClient, schema: Schema = defaultSchema, logger: any LoggerProtocol = DefaultLogger()) -> PowerSyncDatabaseProtocol {
+private func openDatabase(_ client: any HttpClient, schema: Schema = defaultSchema, logger: Logger = defaultPowerSyncLogger()) -> PowerSyncDatabaseProtocol {
     return PowerSyncDatabaseImpl(
         identifier: ":memory:",
         activeInstanceStore: DatabaseGroupCollection(),
         logger: logger,
-        pool: AsyncConnectionPool(location: .inMemory, logger: DefaultLogger()),
+        pool: AsyncConnectionPool(location: .inMemory, logger: defaultPowerSyncLogger()),
         httpClient: client,
         schema: schema,
     )

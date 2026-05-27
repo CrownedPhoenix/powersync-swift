@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Logging
 
 /// Default name of the attachments table
 public let defaultAttachmentsTableName = "attachments"
@@ -277,7 +278,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
     /**
      * Logging interface used for all log operations
      */
-    public let logger: any LoggerProtocol
+    public let logger: Logger
 
     /// Attachment service for interacting with attachment records
     public let attachmentsService: AttachmentServiceProtocol
@@ -311,7 +312,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
         syncThrottleDuration: TimeInterval = 1.0,
         subdirectories: [String]? = nil,
         downloadAttachments: Bool = true,
-        logger: (any LoggerProtocol)? = nil,
+        logger: Logger? = nil,
         getLocalUri: (@Sendable (_ filename: String) async -> String)? = nil
     ) {
         self.db = db
@@ -355,7 +356,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
                 }
                 await self.setInitializedResult(.success(()))
             } catch {
-                self.logger.error("Error verifying attachments: \(error.localizedDescription)", tag: logTag)
+                self.logger.error("Error verifying attachments: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
                 await self.setInitializedResult(.failure(error))
             }
         }
@@ -449,7 +450,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
                 }
             } catch {
                 if !(error is CancellationError) {
-                    logger.error("Error in attachment sync job: \(error.localizedDescription)", tag: logTag)
+                    logger.error("Error in attachment sync job: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
                 }
             }
         }

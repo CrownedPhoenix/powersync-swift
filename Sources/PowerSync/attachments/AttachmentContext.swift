@@ -1,9 +1,10 @@
 import Foundation
+import Logging
 
 public protocol AttachmentContextProtocol: Sendable {
     var db: any PowerSyncDatabaseProtocol { get }
     var tableName: String { get }
-    var logger: any LoggerProtocol { get }
+    var logger: Logger { get }
     var maxArchivedCount: Int64 { get }
 
     /// Deletes the attachment from the attachment queue.
@@ -227,13 +228,13 @@ public extension AttachmentContextProtocol {
 public actor AttachmentContext: AttachmentContextProtocol {
     public let db: any PowerSyncDatabaseProtocol
     public let tableName: String
-    public let logger: any LoggerProtocol
+    public let logger: Logger
     public let maxArchivedCount: Int64
 
     public init(
         db: PowerSyncDatabaseProtocol,
         tableName: String,
-        logger: any LoggerProtocol,
+        logger: Logger,
         maxArchivedCount: Int64
     ) {
         self.db = db

@@ -1,3 +1,5 @@
+import Logging
+
 final class DatabaseGroupCollection: Sendable {
     private let groups: Mutex<[ActiveDatabaseGroupData]> = Mutex([])
 
@@ -5,7 +7,7 @@ final class DatabaseGroupCollection: Sendable {
         groups.withLock { $0.removeAll { group in group.identifier == identifier } }
     }
 
-    func referenceGroup(identifier: String, logger: LoggerProtocol) -> ActiveDatabaseGroup {
+    func referenceGroup(identifier: String, logger: Logger) -> ActiveDatabaseGroup {
         groups.withLock { activeDatabases in
             let existingGroup = activeDatabases.first { $0.identifier == identifier }
             let data: ActiveDatabaseGroupData
@@ -14,7 +16,7 @@ final class DatabaseGroupCollection: Sendable {
 Multiple PowerSync instances for the same database have been detected.
 This can cause unexpected results.
 Please check your PowerSync client instantiation logic if this is not intentional.
-""", tag: "DatabaseGroupCollection")
+""", metadata: ["tag": "DatabaseGroupCollection"])
                 data = existingGroup
             } else {
                 data = ActiveDatabaseGroupData(identifier: identifier)

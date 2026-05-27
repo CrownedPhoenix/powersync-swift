@@ -1,6 +1,7 @@
 import CSQLite
 import Foundation
 import DequeModule
+import Logging
 
 /// A helper implementing a SQLite connection pool from opened and configured connections.
 ///
@@ -10,12 +11,12 @@ final class NativeConnectionPool: Sendable {
     private let writer: AsyncSemaphore<RawSqliteConnection>
     private let readers: AsyncSemaphore<RawSqliteConnection>?
     private let handleUpdates: @Sendable (_: Set<String>) -> ()
-    private let logger: any LoggerProtocol
+    private let logger: Logger
 
     init(
         writer: consuming RawSqliteConnection,
         readers: consuming RigidDeque<RawSqliteConnection>,
-        logger: any LoggerProtocol,
+        logger: Logger,
         handleUpdates: @escaping @Sendable (_: Set<String>) -> (),
     ) {
         self.writer = AsyncSemaphore(singleElement: writer)
@@ -23,10 +24,10 @@ final class NativeConnectionPool: Sendable {
         self.handleUpdates = handleUpdates
         self.logger = logger
     }
-    
+
     init(
         singleConnection: consuming RawSqliteConnection,
-        logger: any LoggerProtocol,
+        logger: Logger,
         handleUpdates: @escaping @Sendable (_: Set<String>) -> (),
     ) {
         self.writer = AsyncSemaphore(singleElement: singleConnection)
@@ -48,7 +49,7 @@ final class NativeConnectionPool: Sendable {
                 }
             }
         } catch {
-            logger.warning("Could not read affected tables", tag: "NativeConnectionPool")
+            logger.warning("Could not read affected tables", metadata: ["tag": "NativeConnectionPool"])
         }
     }
 

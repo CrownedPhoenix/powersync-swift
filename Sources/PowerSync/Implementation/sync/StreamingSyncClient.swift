@@ -1,5 +1,6 @@
 import AsyncAlgorithms
 import Foundation
+import Logging
 
 fileprivate let tag = "StreamingSyncClient"
 
@@ -47,7 +48,7 @@ final class StreamingSyncClient: Sendable {
         for try await _ in allTriggers {
             try await uploadAllCrud()
             
-            db.logger.debug("crud upload: notify completion", tag: tag)
+            db.logger.debug("crud upload: notify completion", metadata: ["tag": .string(tag)])
             signals.notifyCrudUploadComplete()
         }
     }
@@ -68,7 +69,7 @@ final class StreamingSyncClient: Sendable {
 Potentially previously uploaded CRUD entries are still present in the upload queue.
 Make sure to handle uploads and complete CRUD transactions or batches by calling and awaiting their [.complete()] method.
 The next upload iteration will be delayed.
-""", tag: tag)
+""", metadata: ["tag": .string(tag)])
                         throw PowerSyncError.operationFailed(message: "Delaying due to previously encountered CRUD item.")
                     }
 
@@ -90,7 +91,7 @@ The next upload iteration will be delayed.
                     $0.internalUploadError = error
                 }
 
-                db.logger.error("Error uploading crud: \(error)", tag: tag)
+                db.logger.error("Error uploading crud: \(error)", metadata: ["tag": .string(tag)])
                 do {
                     try await sleepForSeconds(seconds: self.options.retryDelay)
                 } catch {
@@ -168,7 +169,7 @@ The next upload iteration will be delayed.
             } catch {
                 result = SyncIterationResult()
                 
-                db.logger.error("Error in streamingSync: \(error)", tag: tag)
+                db.logger.error("Error in streamingSync: \(error)", metadata: ["tag": .string(tag)])
                 db.syncStatus.mutateStatus { $0.internalDownloadError = error }
             }
             
@@ -330,13 +331,14 @@ private struct ActiveSyncIteration: Sendable {
         switch (instr) {
         case .logLine(severity: let severity, line: let line):
             let logger = syncClient.db.logger
+            let metadata: Logger.Metadata = ["tag": .string(tag)]
             switch severity {
             case .debug:
-                logger.debug(line, tag: tag)
+                logger.debug("\(line)", metadata: metadata)
             case .info:
-                logger.info(line, tag: tag)
+                logger.info("\(line)", metadata: metadata)
             case .warning:
-                logger.warning(line, tag: tag)
+                logger.warning("\(line)", metadata: metadata)
             }
             break;
         case .updateSyncStatus(status: let status):
@@ -354,10 +356,10 @@ private struct ActiveSyncIteration: Sendable {
                 group?.addTask {
                     do {
                         let _ = try await syncClient.connector.fetchCredentials(allowCached: false)
-                        syncClient.db.logger.debug("Stopping because new credentials are available", tag: tag)
+                        syncClient.db.logger.debug("Stopping because new credentials are available", metadata: ["tag": .string(tag)])
                         localEvents.dispatch(event: .didRefreshToken)
                     } catch {
-                        syncClient.db.logger.warning("Pre-fetching credentials that are about to expire has failed: \(error)", tag: tag)
+                        syncClient.db.logger.warning("Pre-fetching credentials that are about to expire has failed: \(error)", metadata: ["tag": .string(tag)])
                     }
                 }
             }

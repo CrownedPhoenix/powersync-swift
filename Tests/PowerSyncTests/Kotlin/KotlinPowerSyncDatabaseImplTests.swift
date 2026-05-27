@@ -1,4 +1,5 @@
 import struct Foundation.UUID
+import Logging
 @testable import PowerSync
 import XCTest
 
@@ -22,7 +23,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
         database = PowerSyncDatabase(
             schema: schema,
             dbFilename: ":memory:",
-            logger: DefaultLogger()
+            logger: defaultPowerSyncLogger()
         )
         try await database.disconnectAndClear()
     }
@@ -544,8 +545,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
     }
 
     func testCustomLogger() async throws {
-        let testWriter = TestLogWriterAdapter()
-        let logger = DefaultLogger(minSeverity: LogSeverity.debug, writers: [testWriter])
+        let (logger, handler) = makeCapturingLogger(level: .debug)
 
         let db2 = PowerSyncDatabase(
             schema: schema,
@@ -556,7 +556,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
         try await db2.execute("SELECT 1")
         try await db2.close()
 
-        let warningIndex = testWriter.getLogs().firstIndex(
+        let warningIndex = handler.getLogs().firstIndex(
             where: { value in
                 value.contains("debug: Opened connection. SQLite version")
             }
@@ -566,8 +566,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
     }
 
     func testMinimumSeverity() async throws {
-        let testWriter = TestLogWriterAdapter()
-        let logger = DefaultLogger(minSeverity: LogSeverity.error, writers: [testWriter])
+        let (logger, handler) = makeCapturingLogger(level: .error)
 
         let db2 = PowerSyncDatabase(
             schema: schema,
@@ -577,7 +576,7 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
 
         try await db2.close()
 
-        let warningIndex = testWriter.getLogs().firstIndex(
+        let warningIndex = handler.getLogs().firstIndex(
             where: { value in
                 value.contains("warning: Multiple PowerSync instances for the same database have been detected")
             }

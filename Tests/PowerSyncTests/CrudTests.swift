@@ -22,7 +22,7 @@ final class CrudTests: XCTestCase {
         database = PowerSyncDatabase(
             schema: schema,
             dbFilename: ":memory:",
-            logger: DefaultLogger()
+            logger: defaultPowerSyncLogger()
         )
         try await database.disconnectAndClear()
     }

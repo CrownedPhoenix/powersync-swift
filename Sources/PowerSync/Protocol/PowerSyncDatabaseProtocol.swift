@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 
 /// Configuration for the sync client used to connect to the PowerSync service.
 ///
@@ -149,7 +150,7 @@ public protocol PowerSyncDatabaseProtocol: Queries, Sendable {
     var currentStatus: SyncStatus { get }
 
     /// Logger used for PowerSync operations
-    var logger: any LoggerProtocol { get }
+    var logger: Logger { get }
 
     /// Wait for the first sync to occur
     func waitForFirstSync() async throws
