@@ -4,7 +4,10 @@ import Logging
 public protocol AttachmentContextProtocol: Sendable {
     var db: any PowerSyncDatabaseProtocol { get }
     var tableName: String { get }
-    var logger: Logger { get }
+    /// Legacy logger used by attachment processing. Prefer ``swiftLogger``.
+    var logger: any LoggerProtocol { get }
+    /// The swift-log `Logger` used by attachment processing.
+    var swiftLogger: Logger { get }
     var maxArchivedCount: Int64 { get }
 
     /// Deletes the attachment from the attachment queue.
@@ -228,7 +231,8 @@ public extension AttachmentContextProtocol {
 public actor AttachmentContext: AttachmentContextProtocol {
     public let db: any PowerSyncDatabaseProtocol
     public let tableName: String
-    public let logger: Logger
+    public nonisolated let swiftLogger: Logger
+    public nonisolated var logger: any LoggerProtocol { SwiftLogBridge(logger: swiftLogger) }
     public let maxArchivedCount: Int64
 
     public init(
@@ -239,7 +243,7 @@ public actor AttachmentContext: AttachmentContextProtocol {
     ) {
         self.db = db
         self.tableName = tableName
-        self.logger = logger
+        self.swiftLogger = logger
         self.maxArchivedCount = maxArchivedCount
     }
 }

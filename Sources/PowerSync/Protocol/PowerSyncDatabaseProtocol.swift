@@ -149,8 +149,15 @@ public protocol PowerSyncDatabaseProtocol: Queries, Sendable {
     /// The current sync status.
     var currentStatus: SyncStatus { get }
 
-    /// Logger used for PowerSync operations
-    var logger: Logger { get }
+    /// Legacy logger used for PowerSync operations.
+    ///
+    /// Prefer ``swiftLogger`` for new code; this property is preserved for
+    /// backwards compatibility and is implemented as a `LoggerProtocol` view
+    /// over the underlying swift-log `Logger`.
+    var logger: any LoggerProtocol { get }
+
+    /// The swift-log `Logger` used for PowerSync operations.
+    var swiftLogger: Logger { get }
 
     /// Wait for the first sync to occur
     func waitForFirstSync() async throws

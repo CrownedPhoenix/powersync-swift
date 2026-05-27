@@ -48,7 +48,7 @@ final class StreamingSyncClient: Sendable {
         for try await _ in allTriggers {
             try await uploadAllCrud()
             
-            db.logger.debug("crud upload: notify completion", metadata: ["tag": .string(tag)])
+            db.swiftLogger.debug("crud upload: notify completion", metadata: ["tag": .string(tag)])
             signals.notifyCrudUploadComplete()
         }
     }
@@ -65,7 +65,7 @@ final class StreamingSyncClient: Sendable {
                 let nextItem = try await db.getOptional("SELECT id FROM ps_crud ORDER BY id LIMIT 1", mapper: { cursor in try cursor.getInt64(index: 0) })
                 if let nextItem {
                     if nextItem == lastUploadItem {
-                        db.logger.warning("""
+                        db.swiftLogger.warning("""
 Potentially previously uploaded CRUD entries are still present in the upload queue.
 Make sure to handle uploads and complete CRUD transactions or batches by calling and awaiting their [.complete()] method.
 The next upload iteration will be delayed.
@@ -91,7 +91,7 @@ The next upload iteration will be delayed.
                     $0.internalUploadError = error
                 }
 
-                db.logger.error("Error uploading crud: \(error)", metadata: ["tag": .string(tag)])
+                db.swiftLogger.error("Error uploading crud: \(error)", metadata: ["tag": .string(tag)])
                 do {
                     try await sleepForSeconds(seconds: self.options.retryDelay)
                 } catch {
@@ -169,7 +169,7 @@ The next upload iteration will be delayed.
             } catch {
                 result = SyncIterationResult()
                 
-                db.logger.error("Error in streamingSync: \(error)", metadata: ["tag": .string(tag)])
+                db.swiftLogger.error("Error in streamingSync: \(error)", metadata: ["tag": .string(tag)])
                 db.syncStatus.mutateStatus { $0.internalDownloadError = error }
             }
             
@@ -330,7 +330,7 @@ private struct ActiveSyncIteration: Sendable {
     private func execute(instr: consuming Instruction, group: inout ThrowingTaskGroup<Void, any Error>?) async throws {
         switch (instr) {
         case .logLine(severity: let severity, line: let line):
-            let logger = syncClient.db.logger
+            let logger = syncClient.db.swiftLogger
             let metadata: Logger.Metadata = ["tag": .string(tag)]
             switch severity {
             case .debug:
@@ -356,10 +356,10 @@ private struct ActiveSyncIteration: Sendable {
                 group?.addTask {
                     do {
                         let _ = try await syncClient.connector.fetchCredentials(allowCached: false)
-                        syncClient.db.logger.debug("Stopping because new credentials are available", metadata: ["tag": .string(tag)])
+                        syncClient.db.swiftLogger.debug("Stopping because new credentials are available", metadata: ["tag": .string(tag)])
                         localEvents.dispatch(event: .didRefreshToken)
                     } catch {
-                        syncClient.db.logger.warning("Pre-fetching credentials that are about to expire has failed: \(error)", metadata: ["tag": .string(tag)])
+                        syncClient.db.swiftLogger.warning("Pre-fetching credentials that are about to expire has failed: \(error)", metadata: ["tag": .string(tag)])
                     }
                 }
             }

@@ -56,3 +56,19 @@ public func openPowerSyncWithGRDB(
         logger: logger
     )
 }
+
+/// Legacy overload accepting a `LoggerProtocol`. Prefer the overload that takes
+/// a swift-log `Logger`.
+public func openPowerSyncWithGRDB(
+    pool: DatabasePool,
+    schema: Schema,
+    identifier: String,
+    logger: any LoggerProtocol
+) -> PowerSyncDatabaseProtocol {
+    openPowerSyncWithGRDB(
+        pool: pool,
+        schema: schema,
+        identifier: identifier,
+        logger: logger.asSwiftLogger()
+    )
+}

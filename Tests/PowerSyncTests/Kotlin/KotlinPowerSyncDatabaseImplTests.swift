@@ -565,6 +565,33 @@ final class KotlinPowerSyncDatabaseImplTests: XCTestCase {
         XCTAssert(warningIndex! >= 0)
     }
 
+    /// Verifies the legacy `LoggerProtocol` / `LogWriterProtocol` path still
+    /// routes PowerSync log messages through to the configured writers.
+    func testLegacyCustomLogger() async throws {
+        final class CapturingWriter: LogWriterProtocol, @unchecked Sendable {
+            private let queue = DispatchQueue(label: "CapturingWriter")
+            private var entries: [String] = []
+            func log(severity: LogSeverity, message: String, tag: String?) {
+                queue.sync { entries.append("\(severity.stringValue): \(tag ?? "-"): \(message)") }
+            }
+            func snapshot() -> [String] { queue.sync { entries } }
+        }
+        let writer = CapturingWriter()
+        let logger = DefaultLogger(minSeverity: .debug, writers: [writer])
+
+        let db2 = PowerSyncDatabase(
+            schema: schema,
+            dbFilename: ":memory:",
+            logger: logger as any LoggerProtocol
+        )
+
+        try await db2.execute("SELECT 1")
+        try await db2.close()
+
+        let openedLog = writer.snapshot().first(where: { $0.contains("Opened connection. SQLite version") })
+        XCTAssertNotNil(openedLog)
+    }
+
     func testMinimumSeverity() async throws {
         let (logger, handler) = makeCapturingLogger(level: .error)
 

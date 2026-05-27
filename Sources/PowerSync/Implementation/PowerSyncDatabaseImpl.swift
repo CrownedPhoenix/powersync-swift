@@ -3,7 +3,8 @@ import Foundation
 import Logging
 
 final class PowerSyncDatabaseImpl: PowerSyncDatabaseProtocol {
-    let logger: Logger
+    let swiftLogger: Logger
+    var logger: any LoggerProtocol { SwiftLogBridge(logger: swiftLogger) }
     let group: ActiveDatabaseGroup
     let syncStatus = SwiftSyncStatus()
     private let dbFilename: String?
@@ -22,7 +23,7 @@ final class PowerSyncDatabaseImpl: PowerSyncDatabaseProtocol {
         schema: Schema
     ) {
         self.dbFilename = dbFilename
-        self.logger = logger
+        self.swiftLogger = logger
         self.schema = AsyncMutex(schema)
         self.httpClient = httpClient
         self.pool = pool
@@ -197,7 +198,7 @@ private actor DatabaseInitializationAction {
             let sqliteVersion = try conn.get(sql: "SELECT sqlite_version()", parameters: []) { try $0.getString(index: 0) }
             let powerSyncVersion = try conn.get(sql: "SELECT powersync_rs_version()", parameters: []) { try $0.getString(index: 0) }
 
-            db.logger.debug("Opened connection. SQLite version \(sqliteVersion), PowerSync SQLite core extension \(powerSyncVersion)", metadata: ["tag": "PowerSyncDatabase"])
+            db.swiftLogger.debug("Opened connection. SQLite version \(sqliteVersion), PowerSync SQLite core extension \(powerSyncVersion)", metadata: ["tag": "PowerSyncDatabase"])
 
             try conn.execute(sql: "SELECT powersync_init()", parameters: [])
             return powerSyncVersion

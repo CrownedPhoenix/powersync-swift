@@ -72,4 +72,26 @@ public struct SyncRequestLoggerConfiguration: Sendable {
             logger.log(level: level, "\(message)", metadata: metadata)
         }
     }
+
+    /// Legacy overload that forwards messages to a `LoggerProtocol`. Prefer the
+    /// overload that takes a swift-log `Logger`.
+    ///
+    /// - Parameters:
+    ///   - requestLevel: The `SyncRequestLogLevel` to use for filtering which network events are logged.
+    ///   - logger: An object conforming to `LoggerProtocol` that will receive log messages.
+    ///   - logSeverity: The severity level to use for all log messages (defaults to `.debug`).
+    ///   - logTag: An optional tag to include with each log message.
+    public init(
+        requestLevel: SyncRequestLogLevel,
+        logger: any LoggerProtocol,
+        logSeverity: LogSeverity = .debug,
+        logTag: String? = nil
+    ) {
+        self.init(
+            requestLevel: requestLevel,
+            logger: logger.asSwiftLogger(),
+            level: logSeverity.asSwiftLogLevel,
+            tag: logTag
+        )
+    }
 }

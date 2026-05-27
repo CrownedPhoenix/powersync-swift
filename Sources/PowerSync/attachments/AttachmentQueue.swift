@@ -275,10 +275,11 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
     /// Whether to allow downloading of attachments
     public let downloadAttachments: Bool
 
-    /**
-     * Logging interface used for all log operations
-     */
-    public let logger: Logger
+    /// The swift-log `Logger` used for all log operations.
+    public let swiftLogger: Logger
+
+    /// Legacy `LoggerProtocol` view over ``swiftLogger`` for backwards compatibility.
+    public var logger: any LoggerProtocol { SwiftLogBridge(logger: swiftLogger) }
 
     /// Attachment service for interacting with attachment records
     public let attachmentsService: AttachmentServiceProtocol
@@ -327,21 +328,21 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
         self.syncThrottleDuration = syncThrottleDuration
         self.subdirectories = subdirectories
         self.downloadAttachments = downloadAttachments
-        self.logger = logger ?? db.logger
+        self.swiftLogger = logger ?? db.swiftLogger
         _getLocalUri = getLocalUri ?? { filename in
             URL(fileURLWithPath: attachmentsDirectory).appendingPathComponent(filename).path
         }
         attachmentsService = AttachmentServiceImpl(
             db: db,
             tableName: attachmentsQueueTableName,
-            logger: self.logger,
+            logger: self.swiftLogger,
             maxArchivedCount: archivedCacheLimit
         )
         syncingService = SyncingService(
             remoteStorage: self.remoteStorage,
             localStorage: self.localStorage,
             attachmentsService: attachmentsService,
-            logger: self.logger,
+            logger: self.swiftLogger,
             getLocalUri: _getLocalUri,
             errorHandler: self.errorHandler,
             syncThrottle: self.syncThrottleDuration
@@ -356,7 +357,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
                 }
                 await self.setInitializedResult(.success(()))
             } catch {
-                self.logger.error("Error verifying attachments: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
+                self.swiftLogger.error("Error verifying attachments: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
                 await self.setInitializedResult(.failure(error))
             }
         }
@@ -450,7 +451,7 @@ public actor AttachmentQueue: AttachmentQueueProtocol {
                 }
             } catch {
                 if !(error is CancellationError) {
-                    logger.error("Error in attachment sync job: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
+                    swiftLogger.error("Error in attachment sync job: \(error.localizedDescription)", metadata: ["tag": .string(logTag)])
                 }
             }
         }

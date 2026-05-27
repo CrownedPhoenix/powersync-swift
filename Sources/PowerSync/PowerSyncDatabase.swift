@@ -63,3 +63,37 @@ public func OpenedPowerSyncDatabase(
         schema: schema
     )
 }
+
+// MARK: - Legacy overloads
+
+/// Legacy overload accepting a `LoggerProtocol`. Prefer the overload that takes
+/// a swift-log `Logger`.
+public func PowerSyncDatabase(
+    schema: Schema,
+    dbFilename: String = DEFAULT_DB_FILENAME,
+    logger: any LoggerProtocol,
+    initialStatements: [String] = []
+) -> PowerSyncDatabaseProtocol {
+    PowerSyncDatabase(
+        schema: schema,
+        dbFilename: dbFilename,
+        logger: logger.asSwiftLogger(),
+        initialStatements: initialStatements
+    )
+}
+
+/// Legacy overload accepting a `LoggerProtocol`. Prefer the overload that takes
+/// a swift-log `Logger`.
+public func OpenedPowerSyncDatabase(
+    schema: Schema,
+    pool: any SQLiteConnectionPoolProtocol,
+    identifier: String,
+    logger: any LoggerProtocol
+) -> PowerSyncDatabaseProtocol {
+    OpenedPowerSyncDatabase(
+        schema: schema,
+        pool: pool,
+        identifier: identifier,
+        logger: logger.asSwiftLogger()
+    )
+}
